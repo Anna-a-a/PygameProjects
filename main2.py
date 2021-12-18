@@ -1,70 +1,67 @@
-import sys
-import random
+import sys, random, pygame, os
 
-import pygame
-import os
+class Ball(pygame.sprite.Sprite):
+    def __init__(self, radius, x, y):
+        super().__init__(all_sprites)
+        self.radius = radius
+        self.image = pygame.Surface((2 * radius, 2 * radius),
+                                    pygame.SRCALPHA, 32)
+        pygame.draw.circle(self.image, pygame.Color("red"),
+                           (radius, radius), radius)
+        self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
+        self.vx = random.randint(-5, 5)
+        self.vy = random.randrange(-5, 5)
+
+    def update(self):
+        self.rect = self.rect.move(self.vx, self.vy)
+        if pygame.sprite.spritecollideany(self, horizontal_borders):
+            self.vy = -self.vy
+        if pygame.sprite.spritecollideany(self, vertical_borders):
+            self.vx = -self.vx
 
 
-def load_image(name, colorkey=-1):
-    fullname = os.path.join('data', name)
-    # если файл не существует, то выходим
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit()
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        # image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
+class Border(pygame.sprite.Sprite):
+    # строго вертикальный или строго горизонтальный отрезок
+    def __init__(self, x1, y1, x2, y2):
+        super().__init__(all_sprites)
+        if x1 == x2:  # вертикальная стенка
+            self.add(vertical_borders)
+            self.image = pygame.Surface([1, y2 - y1])
+            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
+        else:  # горизонтальная стенка
+            self.add(horizontal_borders)
+            self.image = pygame.Surface([x2 - x1, 1])
+            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
 
 pygame.init()
-size = width, height = (300, 300)
-
-
-class Creature(pygame.sprite.Sprite):
-    image = load_image("creature.png")
-
-    def __init__(self, *group):
-        # НЕОБХОДИМО вызвать конструктор родительского класса Sprite.
-        # Это очень важно!!!
-        super().__init__(*group)
-        self.image = Creature.image
-        self.rect = self.image.get_rect()
-        self.rect.x = 20
-        self.rect.y = 20
-
-    def update(self, *args):
-        if args and args[0].type == pygame.KEYUP:
-            if args[0].key == pygame.K_UP:
-                self.rect.y -= 10
-            elif args[0].key == pygame.K_DOWN:
-                self.rect.y += 10
-            elif args[0].key == pygame.K_LEFT:
-                self.rect.x -= 10
-            elif args[0].key == pygame.K_RIGHT:
-                self.rect.x += 10
-
-
-screen = pygame.display.set_mode(size)
+horizontal_borders = pygame.sprite.Group()
+vertical_borders = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
-c = Creature(all_sprites)
+
+size = width, height = (700, 700)
+
+Border(5, 5, width - 5, 5)
+Border(5, height - 5, width - 5, height - 5)
+Border(5, 5, 5, height - 5)
+Border(width - 5, 5, width - 5, height - 5)
+
+for i in range(10):
+    Ball(20, 100, 100)
+
 running = True
-cords_mouse = None, None
+screen = pygame.display.set_mode(size)
+fps = 100
+clock = pygame.time.Clock()
 while running:
     screen.fill((255, 255, 255))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYUP:
-            all_sprites.update(event)
     all_sprites.draw(screen)
     all_sprites.update()
     pygame.display.flip()
+    clock.tick(fps)
 
 
 pygame.quit()
